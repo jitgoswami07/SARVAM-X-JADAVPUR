@@ -1,0 +1,21 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Uploads and temporary data
+uploads/*
+!uploads/.gitkeep
+data/*
+!data/.gitkeep
+
+# System files
+.DS_Store
+Thumbs.db
+*.log

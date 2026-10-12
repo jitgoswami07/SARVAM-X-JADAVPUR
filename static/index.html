@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DocIntel Agent — Sarvam AI</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #16161f;
+            --bg-card-hover: #1c1c28;
+            --bg-input: #1a1a25;
+            --bg-highlight: #1e1e30;
+            --border: #2a2a3a;
+            --border-light: #333348;
+            --text-primary: #eeeef0;
+            --text-secondary: #9999aa;
+            --text-muted: #666678;
+            --accent: #6c5ce7;
+            --accent-light: #8b7cf7;
+            --accent-bg: rgba(108, 92, 231, 0.12);
+            --success: #00d4aa;
+            --success-bg: rgba(0, 212, 170, 0.12);
+            --warning: #ffa502;
+            --warning-bg: rgba(255, 165, 2, 0.12);
+            --danger: #ff4757;
+            --danger-bg: rgba(255, 71, 87, 0.12);
+            --info: #3498db;
+            --info-bg: rgba(52, 152, 219, 0.12);
+            --gradient-1: linear-gradient(135deg, #6c5ce7 0%, #a855f7 100%);
+            --gradient-2: linear-gradient(135deg, #00d4aa 0%, #3498db 100%);
+            --gradient-3: linear-gradient(135deg, #ffa502 0%, #ff6348 100%);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,.4);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
+            --shadow-glow: 0 0 30px rgba(108, 92, 231, 0.15);
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-sm: 8px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        ::selection { background: var(--accent); color: #fff; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .app-wrapper { display: flex; min-height: 100vh; }
+
+        /* ─── Sidebar ────────────────────────────────────────── */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 100;
+            transition: transform .3s ease;
+        }
+        .sidebar-brand { padding: 24px 20px; border-bottom: 1px solid var(--border); }
+        .sidebar-brand h1 {
+            font-size: 18px; font-weight: 700;
+            background: var(--gradient-1);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .sidebar-brand h1 .logo-icon { font-size: 24px; -webkit-text-fill-color: initial; }
+        .sidebar-brand p { font-size: 11px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
+        .sidebar-nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+            border-radius: var(--radius-sm); color: var(--text-secondary);
+            cursor: pointer; transition: all .2s; font-size: 14px; font-weight: 500;
+            border: none; background: none; width: 100%; text-align: left; position: relative;
+        }
+        .nav-item:hover { background: var(--bg-card); color: var(--text-primary); }
+        .nav-item.active { background: var(--accent-bg); color: var(--accent-light); }
+        .nav-item.active::before {
+            content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
+            width: 3px; background: var(--accent); border-radius: 0 3px 3px 0;
+        }
+        .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+        .nav-badge {
+            margin-left: auto; background: var(--danger); color: #fff;
+            font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 10px;
+        }
+        .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); text-align: center; }
+
+        /* ─── Main Content ────────────────────────────────────── */
+        .main-content { margin-left: 260px; flex: 1; min-height: 100vh; }
+        .top-bar {
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(10, 10, 15, 0.8); backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border); padding: 16px 32px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .top-bar h2 { font-size: 20px; font-weight: 700; }
+        .page-content { padding: 28px 32px; max-width: 1200px; }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* ─── Cards ───────────────────────────────────────────── */
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 24px; transition: all .25s;
+        }
+        .card:hover { border-color: var(--border-light); }
+        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .card-title { font-size: 16px; font-weight: 600; }
+        .card + .card { margin-top: 20px; }
+
+        /* ─── Stat Cards ──────────────────────────────────────── */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 20px 24px;
+            display: flex; align-items: center; gap: 16px; transition: all .25s;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-glow); border-color: var(--accent); }
+        .stat-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; flex-shrink: 0;
+        }
+        .stat-icon.purple { background: var(--accent-bg); }
+        .stat-icon.green { background: var(--success-bg); }
+        .stat-icon.orange { background: var(--warning-bg); }
+        .stat-icon.red { background: var(--danger-bg); }
+        .stat-info h3 { font-size: 28px; font-weight: 700; line-height: 1.2; }
+        .stat-info p { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+
+        /* ─── Upload ──────────────────────────────────────────── */
+        .upload-zone {
+            border: 2px dashed var(--border); border-radius: var(--radius-lg);
+            padding: 48px 24px; text-align: center; cursor: pointer;
+            transition: all .3s; background: var(--bg-card); position: relative;
+        }
+        .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: var(--accent-bg); }
+        .upload-zone .upload-icon { font-size: 48px; margin-bottom: 12px; display: block; }
+        .upload-zone h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+        .upload-zone p { font-size: 13px; color: var(--text-secondary); }
+        .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+        /* ─── Step Indicator ──────────────────────────────────── */
+        .steps {
+            display: flex; gap: 0; margin-bottom: 28px;
+            background: var(--bg-card); border-radius: var(--radius-lg);
+            border: 1px solid var(--border); overflow: hidden;
+        }
+        .step {
+            flex: 1; padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+            border-right: 1px solid var(--border); position: relative;
+        }
+        .step:last-child { border-right: none; }
+        .step-num {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: var(--bg-input); border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; flex-shrink: 0;
+        }
+        .step.active .step-num { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .step.done .step-num { background: var(--success); border-color: var(--success); color: #fff; }
+        .step-text h4 { font-size: 13px; font-weight: 600; }
+        .step-text p { font-size: 11px; color: var(--text-muted); }
+
+        /* ─── Forms ───────────────────────────────────────────── */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 20px 0; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group .help-text { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        input[type="text"], select, textarea {
+            background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 10px 14px;
+            color: var(--text-primary); font-size: 14px; font-family: inherit;
+            transition: border-color .2s; outline: none; width: 100%;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+        select { cursor: pointer; }
+        textarea { resize: vertical; min-height: 80px; }
+
+        /* ─── Buttons ─────────────────────────────────────────── */
+        .btn {
+            padding: 10px 20px; border-radius: var(--radius-sm);
+            font-size: 14px; font-weight: 600; font-family: inherit;
+            cursor: pointer; border: none; transition: all .2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary { background: var(--gradient-1); color: #fff; }
+        .btn-primary:hover { opacity: .9; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-secondary:hover { background: var(--bg-card-hover); }
+        .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(255,71,87,.2); }
+        .btn-danger:hover { background: rgba(255,71,87,.2); }
+        .btn-success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(0,212,170,.2); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn-lg { padding: 14px 28px; font-size: 15px; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* ─── Tables ──────────────────────────────────────────── */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tr:hover td { background: var(--bg-card-hover); }
+
+        /* ─── Badges ──────────────────────────────────────────── */
+        .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-processing { background: var(--info-bg); color: var(--info); }
+        .badge-completed { background: var(--success-bg); color: var(--success); }
+        .badge-failed { background: var(--danger-bg); color: var(--danger); }
+        .badge-pending { background: var(--warning-bg); color: var(--warning); }
+        .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .badge-processing .badge-dot { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+
+        /* ─── Charts Grid ─────────────────────────────────────── */
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .chart-container { position: relative; height: 260px; }
+
+        /* ═══ HUMAN-READABLE RESULTS ══════════════════════════════ */
+
+        /* Summary Banner */
+        .result-summary-banner {
+            background: var(--gradient-1);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        .result-summary-banner h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+        .result-summary-banner p { font-size: 14px; opacity: .9; }
+        .result-summary-banner .summary-meta {
+            display: flex; gap: 24px; margin-top: 12px; flex-wrap: wrap;
+        }
+        .result-summary-banner .meta-item {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 13px; opacity: .85;
+        }
+
+        /* Extracted Fields as clean cards */
+        .extracted-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 14px;
+        }
+        .field-card {
+            background: var(--bg-highlight);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            transition: all .2s;
+        }
+        .field-card:hover { border-color: var(--accent); background: var(--accent-bg); }
+        .field-card .field-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--accent-light);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .field-card .field-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            word-break: break-word;
+        }
+        .field-card .field-value.number {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--success);
+        }
+        .field-card .field-value.long-text {
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        /* Document text view */
+        .document-text-view {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .document-text-view h1, .document-text-view h2, .document-text-view h3 {
+            color: var(--text-primary);
+            margin: 16px 0 8px;
+        }
+
+        /* Key-Value Table (clean readable format) */
+        .kv-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .kv-table tr { border-bottom: 1px solid var(--border); }
+        .kv-table tr:last-child { border-bottom: none; }
+        .kv-table td { padding: 14px 16px; }
+        .kv-table .kv-key {
+            width: 200px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-light);
+            text-transform: capitalize;
+            vertical-align: top;
+        }
+        .kv-table .kv-val {
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        /* Tabs for result views */
+        .result-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .result-tab {
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border: none;
+            background: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all .2s;
+            font-family: inherit;
+        }
+        .result-tab:hover { color: var(--text-secondary); }
+        .result-tab.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+        .result-tab-content { display: none; }
+        .result-tab-content.active { display: block; }
+
+        /* ─── Alert Items ─────────────────────────────────────── */
+        .alert-item {
+            display: flex; align-items: flex-start; gap: 14px;
+            padding: 16px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); margin-bottom: 10px; transition: all .2s;
+        }
+        .alert-item:hover { background: var(--bg-card-hover); }
+        .alert-item.unread { border-left: 3px solid var(--accent); }
+        .alert-icon {
+            width: 36px; height: 36px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; flex-shrink: 0;
+        }
+        .alert-content { flex: 1; }
+        .alert-content h4 { font-size: 14px; font-weight: 600; }
+        .alert-content p { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+        .alert-time { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+        /* ─── Workflow Cards ──────────────────────────────────── */
+        .workflow-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 18px;
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .workflow-info h4 { font-size: 14px; font-weight: 600; }
+        .workflow-info p { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .workflow-rule {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--bg-input); padding: 6px 12px; border-radius: 20px;
+            font-size: 12px; margin-top: 8px; color: var(--text-secondary);
+        }
+        .workflow-rule strong { color: var(--accent-light); }
+
+        /* ─── Modals ──────────────────────────────────────────── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+            z-index: 200; align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 28px;
+            width: 90%; max-width: 900px; max-height: 90vh;
+            overflow-y: auto; box-shadow: var(--shadow-lg);
+        }
+        .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+        /* ─── Empty State ─────────────────────────────────────── */
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; display: block; }
+        .empty-state h3 { font-size: 16px; color: var(--text-secondary); margin-bottom: 6px; }
+        .empty-state p { font-size: 13px; }
+
+        /* ─── Toasts ──────────────────────────────────────────── */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+        .toast {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 14px 20px; min-width: 280px;
+            display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg);
+            animation: slideIn .3s ease;
+        }
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        .toast.info { border-left: 3px solid var(--info); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Schema fields */
+        .schema-field-row { display: grid; grid-template-columns: 1fr 120px 2fr 40px; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .schema-field-row .btn-remove {
+            width: 32px; height: 32px; border-radius: 6px;
+            background: var(--danger-bg); color: var(--danger); border: none; cursor: pointer;
+            font-size: 16px; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* How it works guide */
+        .how-it-works {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0;
+        }
+        .how-step {
+            text-align: center; padding: 24px 16px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); transition: all .25s;
+        }
+        .how-step:hover { border-color: var(--accent); }
+        .how-step .how-num {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--accent-bg); color: var(--accent-light);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: 700; margin-bottom: 12px;
+        }
+        .how-step h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .how-step p { font-size: 12px; color: var(--text-muted); }
+
+        /* ─── Responsive ──────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .main-content { margin-left: 0; }
+            .charts-grid, .how-it-works { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .top-bar { padding: 12px 16px; }
+            .page-content { padding: 16px; }
+            .extracted-fields { grid-template-columns: 1fr; }
+        }
+
+        /* Print / PDF friendly */
+        @media print {
+            .sidebar, .top-bar, .btn, .nav-item { display: none !important; }
+            .main-content { margin-left: 0 !important; }
+            .card { break-inside: avoid; border: 1px solid #ddd !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <!-- ─── Sidebar ──────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <h1><span class="logo-icon">🔍</span> DocIntel Agent</h1>
+            <p>Powered by Sarvam AI</p>
+        </div>
+        <nav class="sidebar-nav">
+            <button class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+                <span class="nav-icon">📊</span> Dashboard
+            </button>
+            <button class="nav-item" data-page="upload" onclick="showPage('upload')">
+                <span class="nav-icon">📤</span> Upload & Process
+            </button>
+            <button class="nav-item" data-page="documents" onclick="showPage('documents')">
+                <span class="nav-icon">📄</span> Documents
+            </button>
+            <button class="nav-item" data-page="workflows" onclick="showPage('workflows')">
+                <span class="nav-icon">⚡</span> Workflows
+            </button>
+            <button class="nav-item" data-page="alerts" onclick="showPage('alerts')">
+                <span class="nav-icon">🔔</span> Alerts
+                <span class="nav-badge" id="alertBadge" style="display:none">0</span>
+            </button>
+        </nav>
+        <div class="sidebar-footer"><p>SARVAM x JU Hackathon 2026</p></div>
+    </aside>
+
+    <!-- ─── Main Content ─────────────────────────────────────── -->
+    <main class="main-content">
+        <div class="top-bar">
+            <h2 id="pageTitle">Dashboard</h2>
+            <span style="font-size:13px;color:var(--text-muted);" id="clockDisplay"></span>
+        </div>
+
+        <!-- ═══ Dashboard ═══ -->
+        <div class="page active" id="page-dashboard">
+            <div class="page-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon purple">📄</div>
+                        <div class="stat-info"><h3 id="statTotal">0</h3><p>Total Documents</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">✅</div>
+                        <div class="stat-info"><h3 id="statCompleted">0</h3><p>Completed</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">⏳</div>
+                        <div class="stat-info"><h3 id="statProcessing">0</h3><p>Processing</p></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red">🔔</div>
+                        <div class="stat-info"><h3 id="statAlerts">0</h3><p>Active Alerts</p></div>
+                    </div>
+                </div>
+
+                <!-- How it works (for new users) -->
+                <div id="welcomeSection">
+                    <div class="card" style="border-color: var(--accent); background: linear-gradient(135deg, rgba(108,92,231,.08), rgba(168,85,247,.05));">
+                        <h3 style="font-size:20px;font-weight:700;margin-bottom:4px;">Welcome to DocIntel Agent! 👋</h3>
+                        <p style="color:var(--text-secondary);font-size:14px;">Turn any document into structured, readable data in 3 simple steps.</p>
+                        <div class="how-it-works">
+                            <div class="how-step">
+                                <div class="how-num">1</div>
+                                <h4>Upload a Document</h4>
+                                <p>PDF, photo of an invoice, scanned form — anything works</p>
+                            </div>
+                            <div class="how-step">
+                                <div class="how-num">2</div>
+                                <h4>AI Reads It</h4>
+                                <p>Sarvam AI extracts all the text and data automatically</p>
+                            </div>
+                            <div class="how-step">
+                                <div class="how-num">3</div>
+                                <h4>Get Clean Results</h4>
+                                <p>View readable tables, summaries & export for any use</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-lg" onclick="showPage('upload')">Upload Your First Document →</button>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Document Types</h3></div>
+                        <div class="chart-container"><canvas id="docTypesChart"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Processing Timeline</h3></div>
+                        <div class="chart-container"><canvas id="timelineChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Documents</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="showPage('documents')">View All →</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
+                            <tbody id="recentDocsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Upload Page ═══ -->
+        <div class="page" id="page-upload">
+            <div class="page-content">
+                <!-- Step indicator -->
+                <div class="steps" id="stepsBar">
+                    <div class="step active" id="step1">
+                        <div class="step-num">1</div>
+                        <div class="step-text"><h4>Upload File</h4><p>Choose your document</p></div>
+                    </div>
+                    <div class="step" id="step2">
+                        <div class="step-num">2</div>
+                        <div class="step-text"><h4>Configure</h4><p>Set processing options</p></div>
+                    </div>
+                    <div class="step" id="step3">
+                        <div class="step-num">3</div>
+                        <div class="step-text"><h4>Results</h4><p>View extracted data</p></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Upload Document</h3></div>
+                    <div class="upload-zone" id="uploadZone">
+                        <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp" />
+                        <span class="upload-icon">📁</span>
+                        <h3>Drop your document here or click to browse</h3>
+                        <p>Supports PDF, PNG, JPG, TIFF — up to 20MB</p>
+                    </div>
+                    <div id="selectedFile" style="margin-top:12px;display:none;padding:12px 16px;background:var(--success-bg);border:1px solid rgba(0,212,170,.2);border-radius:var(--radius-sm);font-size:14px;color:var(--success);display:none;">
+                        <span id="selectedFileName"></span>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>What do you want to do?</label>
+                            <select id="processType" onchange="toggleSchema()">
+                                <option value="digitise">📝 Read Everything (Full OCR) — best for reports & letters</option>
+                                <option value="extract">🔑 Extract Specific Fields — best for invoices & forms</option>
+                            </select>
+                            <span class="help-text" id="processHelp">The AI will read all text from your document and return it in a clean format.</span>
+                        </div>
+                        <div class="form-group">
+                            <label>Document Language</label>
+                            <select id="language">
+                                <option value="en-IN">English</option>
+                                <option value="hi-IN">Hindi (हिन्दी)</option>
+                                <option value="bn-IN">Bengali (বাংলা)</option>
+                                <option value="ta-IN">Tamil (தமிழ்)</option>
+                                <option value="te-IN">Telugu (తెలుగు)</option>
+                                <option value="mr-IN">Marathi (मराठी)</option>
+                                <option value="gu-IN">Gujarati (ગુજરાતી)</option>
+                                <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
+                                <option value="ml-IN">Malayalam (മലയാളം)</option>
+                                <option value="pa-IN">Punjabi (ਪੰਜਾਬੀ)</option>
+                                <option value="or-IN">Odia (ଓଡ଼ିଆ)</option>
+                            </select>
+                            <span class="help-text">Choose the primary language of your document</span>
+                        </div>
+                    </div>
+
+                    <!-- Schema Builder -->
+                    <div id="schemaSection" style="display:none;">
+                        <div class="card" style="background:var(--bg-highlight);margin-top:12px;">
+                            <div class="card-header">
+                                <h3 class="card-title">What fields do you want to extract?</h3>
+                                <button class="btn btn-secondary btn-sm" onclick="addSchemaField()">+ Add Field</button>
+                            </div>
+                            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+                                Pick a template below or add custom fields. The AI will find these values in your document.
+                            </p>
+                            <div class="form-group" style="margin-bottom:14px;">
+                                <label>Quick Template</label>
+                                <select id="schemaPreset" onchange="loadPreset()">
+                                    <option value="">— Choose a template —</option>
+                                    <option value="invoice">📋 Invoice / Bill</option>
+                                    <option value="kyc">🪪 ID Card / KYC Document</option>
+                                    <option value="receipt">🧾 Receipt / Payment Slip</option>
+                                    <option value="report">📊 Report / Certificate</option>
+                                </select>
+                            </div>
+                            <div id="schemaFields"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:24px;display:flex;align-items:center;gap:12px;">
+                        <button class="btn btn-primary btn-lg" id="uploadBtn" onclick="submitUpload()">
+                            🚀 Process Document
+                        </button>
+                        <span style="font-size:13px;color:var(--text-muted);">Usually takes 10-30 seconds</span>
+                    </div>
+                </div>
+
+                <!-- Processing Status -->
+                <div class="card" id="processingCard" style="margin-top:20px;display:none;">
+                    <div class="card-header">
+                        <h3 class="card-title">Processing Your Document...</h3>
+                    </div>
+                    <div id="processingStatus" style="font-size:14px;color:var(--text-secondary);">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <span class="spinner"></span>
+                            <span>Sending your document to Sarvam AI for processing...</span>
+                        </div>
+                    </div>
+                    <div class="steps" style="margin-top:16px;">
+                        <div class="step active" id="pStep1"><div class="step-num">1</div><div class="step-text"><h4>Uploading</h4></div></div>
+                        <div class="step" id="pStep2"><div class="step-num">2</div><div class="step-text"><h4>AI Reading</h4></div></div>
+                        <div class="step" id="pStep3"><div class="step-num">3</div><div class="step-text"><h4>Done</h4></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Documents Page ═══ -->
+        <div class="page" id="page-documents">
+            <div class="page-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">All Documents</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="refreshDocuments()">🔄 Refresh</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Document</th><th>Type</th><th>Status</th><th>Uploaded</th><th>Actions</th></tr></thead>
+                            <tbody id="allDocsTable"></tbody>
+                        </table>
+                    </div>
+                    <div class="empty-state" id="docsEmpty">
+                        <span class="empty-icon">📭</span>
+                        <h3>No documents yet</h3>
+                        <p>Upload your first document to get started</p>
+                        <button class="btn btn-primary" style="margin-top:16px;" onclick="showPage('upload')">Upload Now →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Workflows Page ═══ -->
+        <div class="page" id="page-workflows">
+            <div class="page-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Automation Rules</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openWorkflowModal()">+ New Rule</button>
+                    </div>
+                    <div style="background:var(--info-bg);border:1px solid rgba(52,152,219,.2);border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:16px;font-size:13px;color:var(--info);">
+                        💡 <strong>How it works:</strong> Create rules that watch for specific values in your documents. When a match is found, an alert is triggered automatically.
+                        <br>Example: <em>"Alert me if an invoice total is greater than 50,000"</em>
+                    </div>
+                    <div id="workflowsList"></div>
+                    <div class="empty-state" id="workflowsEmpty">
+                        <span class="empty-icon">⚡</span>
+                        <h3>No automation rules yet</h3>
+                        <p>Create rules like "Alert me when total_amount exceeds 10,000"</p>
+                        <button class="btn btn-primary" style="margin-top:16px;" onclick="openWorkflowModal()">Create First Rule →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Alerts Page ═══ -->
+        <div class="page" id="page-alerts">
+            <div class="page-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Alerts & Notifications</h3>
+                        <button class="btn btn-danger btn-sm" onclick="clearAlerts()">🗑 Clear All</button>
+                    </div>
+                    <div id="alertsList"></div>
+                    <div class="empty-state" id="alertsEmpty">
+                        <span class="empty-icon">🔕</span>
+                        <h3>No alerts</h3>
+                        <p>Alerts will appear here when your automation rules are triggered by incoming documents</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ─── Modal: View Document Results ─────────────────────────── -->
+<div class="modal-overlay" id="resultModal">
+    <div class="modal" style="max-width:900px;">
+        <div id="resultModalContent"></div>
+        <div class="modal-actions">
+            <div class="btn-group" style="margin-right:auto;">
+                <button class="btn btn-success btn-sm" id="exportJsonBtn">📥 Download JSON</button>
+                <button class="btn btn-success btn-sm" id="exportCsvBtn">📥 Download CSV</button>
+            </div>
+            <button class="btn btn-secondary" onclick="closeModal('resultModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ─── Modal: Workflow ──────────────────────────────────────── -->
+<div class="modal-overlay" id="workflowModal">
+    <div class="modal" style="max-width:550px;">
+        <h3>Create Automation Rule</h3>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Set up a rule that monitors extracted document data and triggers an action when conditions are met.</p>
+        <div class="form-group" style="margin-bottom:14px;">
+            <label>Rule Name</label>
+            <input type="text" id="wfName" placeholder="e.g. High-Value Invoice Alert" />
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Field to Watch</label>
+                <input type="text" id="wfField" placeholder="e.g. total_amount, name, date" />
+                <span class="help-text">The data field name from your extraction results</span>
+            </div>
+            <div class="form-group">
+                <label>Condition</label>
+                <select id="wfCondition">
+                    <option value="contains">Contains (text match)</option>
+                    <option value="equals">Equals (exact match)</option>
+                    <option value="greater_than">Greater Than (number)</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Value</label>
+                <input type="text" id="wfValue" placeholder="e.g. 10000 or overdue" />
+            </div>
+            <div class="form-group">
+                <label>Action</label>
+                <select id="wfAction">
+                    <option value="alert">🔔 Trigger Alert</option>
+                    <option value="flag">🚩 Flag Document</option>
+                    <option value="approve">✅ Auto-Approve</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('workflowModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="createWorkflow()">Create Rule</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+const API = '';
+
+// ─── Navigation ──────────────────────────────────────────────
+function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.querySelector(`[data-page="${page}"]`).classList.add('active');
+    const titles = { dashboard:'Dashboard', upload:'Upload & Process', documents:'Documents', workflows:'Workflows', alerts:'Alerts' };
+    document.getElementById('pageTitle').textContent = titles[page] || page;
+    if (page === 'dashboard') loadDashboard();
+    if (page === 'documents') refreshDocuments();
+    if (page === 'workflows') loadWorkflows();
+    if (page === 'alerts') loadAlerts();
+}
+
+// ─── Clock ───────────────────────────────────────────────────
+function updateClock() {
+    document.getElementById('clockDisplay').textContent = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ─── Toast ───────────────────────────────────────────────────
+function showToast(message, type = 'info') {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    const icons = { success:'✅', error:'❌', info:'ℹ️' };
+    t.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span style="font-size:14px;">${message}</span>`;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 4000);
+}
+
+// ─── Upload Handling ─────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+['dragenter','dragover'].forEach(ev => uploadZone.addEventListener(ev, e => { e.preventDefault(); uploadZone.classList.add('drag-over'); }));
+['dragleave','drop'].forEach(ev => uploadZone.addEventListener(ev, e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); }));
+uploadZone.addEventListener('drop', e => { fileInput.files = e.dataTransfer.files; showSelectedFile(); });
+fileInput.addEventListener('change', showSelectedFile);
+
+function showSelectedFile() {
+    const file = fileInput.files[0];
+    if (file) {
+        const el = document.getElementById('selectedFile');
+        el.style.display = 'block';
+        document.getElementById('selectedFileName').textContent = `✅ Selected: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+        document.getElementById('step1').classList.add('done');
+        document.getElementById('step2').classList.add('active');
+    }
+}
+
+function toggleSchema() {
+    const isExtract = document.getElementById('processType').value === 'extract';
+    document.getElementById('schemaSection').style.display = isExtract ? 'block' : 'none';
+    document.getElementById('processHelp').textContent = isExtract
+        ? 'The AI will find and extract specific fields you define (like invoice number, amount, date).'
+        : 'The AI will read all text from your document and return it in a clean format.';
+}
+
+// ─── Schema Builder ──────────────────────────────────────────
+let schemaFieldCount = 0;
+const presets = {
+    invoice: [
+        { name:'invoice_number', type:'string', desc:'Invoice or bill number' },
+        { name:'date', type:'string', desc:'Invoice date' },
+        { name:'vendor_name', type:'string', desc:'Vendor or seller name' },
+        { name:'total_amount', type:'number', desc:'Total amount payable' },
+        { name:'tax_amount', type:'number', desc:'Tax or GST amount' },
+        { name:'line_items', type:'string', desc:'Description of items or services' },
+    ],
+    kyc: [
+        { name:'full_name', type:'string', desc:'Full name on document' },
+        { name:'id_number', type:'string', desc:'ID/Aadhaar/PAN number' },
+        { name:'date_of_birth', type:'string', desc:'Date of birth' },
+        { name:'address', type:'string', desc:'Address on document' },
+        { name:'gender', type:'string', desc:'Gender' },
+    ],
+    receipt: [
+        { name:'store_name', type:'string', desc:'Store or merchant name' },
+        { name:'date', type:'string', desc:'Transaction date' },
+        { name:'total', type:'number', desc:'Total amount' },
+        { name:'payment_method', type:'string', desc:'Payment method' },
+        { name:'items', type:'string', desc:'List of items purchased' },
+    ],
+    report: [
+        { name:'title', type:'string', desc:'Report title' },
+        { name:'author', type:'string', desc:'Author or organization' },
+        { name:'date', type:'string', desc:'Report date' },
+        { name:'summary', type:'string', desc:'Executive summary or key findings' },
+        { name:'conclusions', type:'string', desc:'Conclusions or recommendations' },
+    ]
+};
+function loadPreset() {
+    const p = document.getElementById('schemaPreset').value;
+    document.getElementById('schemaFields').innerHTML = '';
+    schemaFieldCount = 0;
+    if (p && presets[p]) presets[p].forEach(f => addSchemaField(f.name, f.type, f.desc));
+}
+function addSchemaField(name='', type='string', desc='') {
+    schemaFieldCount++;
+    const div = document.createElement('div');
+    div.className = 'schema-field-row'; div.id = `schemaField_${schemaFieldCount}`;
+    div.innerHTML = `
+        <input type="text" placeholder="Field name" value="${name}" class="sf-name" />
+        <select class="sf-type"><option value="string" ${type==='string'?'selected':''}>Text</option><option value="number" ${type==='number'?'selected':''}>Number</option><option value="boolean" ${type==='boolean'?'selected':''}>Yes/No</option></select>
+        <input type="text" placeholder="What is this field?" value="${desc}" class="sf-desc" />
+        <button class="btn-remove" onclick="this.parentElement.remove()">×</button>`;
+    document.getElementById('schemaFields').appendChild(div);
+}
+function buildSchema() {
+    const fields = document.querySelectorAll('.schema-field-row');
+    const properties = {};
+    fields.forEach(row => {
+        const name = row.querySelector('.sf-name').value.trim();
+        const type = row.querySelector('.sf-type').value;
+        const desc = row.querySelector('.sf-desc').value.trim();
+        if (name) properties[name] = { type, description: desc || name };
+    });
+    return { type:'object', properties };
+}
+
+// ─── Submit Upload ───────────────────────────────────────────
+async function submitUpload() {
+    const file = fileInput.files[0];
+    if (!file) { showToast('Please select a file first', 'error'); return; }
+
+    const processType = document.getElementById('processType').value;
+    const language = document.getElementById('language').value;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('process_type', processType);
+    formData.append('language', language);
+
+    if (processType === 'extract') {
+        const schema = buildSchema();
+        if (Object.keys(schema.properties).length === 0) { showToast('Please add at least one field to extract', 'error'); return; }
+        formData.append('schema', JSON.stringify(schema));
+    }
+
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Processing...';
+    const card = document.getElementById('processingCard');
+    card.style.display = 'block';
+    document.getElementById('pStep1').classList.add('done');
+    document.getElementById('pStep2').classList.add('active');
+
+    try {
+        const resp = await fetch(`${API}/api/upload`, { method:'POST', body:formData });
+        const data = await resp.json();
+        if (!resp.ok) {
+            showToast(`Upload failed: ${data.error || 'Unknown error'}`, 'error');
+            document.getElementById('processingStatus').innerHTML = `<span style="color:var(--danger);">❌ Failed: ${data.error}</span>`;
+            btn.disabled = false; btn.innerHTML = '🚀 Process Document';
+            return;
+        }
+        showToast('Document submitted! AI is reading it now...', 'success');
+        document.getElementById('processingStatus').innerHTML = `
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="spinner"></span>
+                <span>Sarvam AI is reading your document... This usually takes 10-30 seconds.</span>
+            </div>`;
+        pollStatus(data.doc_id);
+    } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+        document.getElementById('processingStatus').innerHTML = `<span style="color:var(--danger);">❌ ${err.message}</span>`;
+    }
+    btn.disabled = false; btn.innerHTML = '🚀 Process Document';
+}
+
+async function pollStatus(docId) {
+    const statusEl = document.getElementById('processingStatus');
+    let attempts = 0;
+    const poll = setInterval(async () => {
+        attempts++;
+        try {
+            const resp = await fetch(`${API}/api/documents/${docId}/status`);
+            const data = await resp.json();
+            if (data.job_status === 'completed' || data.job_status === 'partially_completed') {
+                clearInterval(poll);
+                document.getElementById('pStep2').classList.remove('active');
+                document.getElementById('pStep2').classList.add('done');
+                document.getElementById('pStep3').classList.add('done');
+                document.getElementById('step3').classList.add('done');
+                statusEl.innerHTML = `
+                    <div style="color:var(--success);display:flex;align-items:center;gap:12px;font-size:16px;font-weight:600;">
+                        ✅ Your document has been processed!
+                    </div>
+                    <div style="margin-top:16px;">
+                        <button class="btn btn-primary btn-lg" onclick="viewResults('${docId}')">📋 View Extracted Data</button>
+                        <button class="btn btn-secondary" style="margin-left:8px;" onclick="showPage('documents')">Go to Documents</button>
+                    </div>`;
+                showToast('Document processed successfully!', 'success');
+                loadDashboard();
+            } else if (data.job_status === 'failed' || data.job_status === 'rejected') {
+                clearInterval(poll);
+                statusEl.innerHTML = `<span style="color:var(--danger);font-size:16px;">❌ Processing failed. The AI could not read this document. Try again with a clearer image or PDF.</span>`;
+                showToast('Processing failed', 'error');
+            } else {
+                const u = data.usage || {};
+                statusEl.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span class="spinner"></span>
+                        <span>AI is reading your document... ${u.pages_processed ? `(${u.pages_processed} of ${u.pages_total} pages done)` : ''}</span>
+                    </div>`;
+            }
+        } catch (err) {}
+        if (attempts >= 60) {
+            clearInterval(poll);
+            statusEl.innerHTML = '<span style="color:var(--warning);">⏱ Taking longer than expected. Check the Documents page for updates.</span>';
+        }
+    }, 3000);
+}
+
+// ─── Dashboard ───────────────────────────────────────────────
+let docTypesChart = null, timelineChart = null;
+async function loadDashboard() {
+    try {
+        const resp = await fetch(`${API}/api/analytics`);
+        const data = await resp.json();
+        document.getElementById('statTotal').textContent = data.summary.total_documents;
+        document.getElementById('statCompleted').textContent = data.summary.completed;
+        document.getElementById('statProcessing').textContent = data.summary.processing;
+        document.getElementById('statAlerts').textContent = data.alerts_count;
+        updateAlertBadge(data.alerts_count);
+        // Show/hide welcome section
+        document.getElementById('welcomeSection').style.display = data.summary.total_documents > 0 ? 'none' : 'block';
+        renderCharts(data);
+        loadRecentDocs();
+    } catch (err) { console.error(err); }
+}
+
+function renderCharts(data) {
+    const ctx1 = document.getElementById('docTypesChart').getContext('2d');
+    if (docTypesChart) docTypesChart.destroy();
+    const tl = Object.keys(data.doc_types).length ? Object.keys(data.doc_types) : ['No data'];
+    const tv = Object.keys(data.doc_types).length ? Object.values(data.doc_types) : [1];
+    const colors = ['#6c5ce7','#00d4aa','#ffa502','#ff4757','#3498db','#fd79a8'];
+    docTypesChart = new Chart(ctx1, { type:'doughnut', data:{ labels:tl, datasets:[{ data:tv, backgroundColor:colors.slice(0,tl.length), borderWidth:0 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ color:'#9999aa', padding:15, font:{size:12} } } }, cutout:'65%' } });
+    const ctx2 = document.getElementById('timelineChart').getContext('2d');
+    if (timelineChart) timelineChart.destroy();
+    const xl = Object.keys(data.timeline).length ? Object.keys(data.timeline) : ['Today'];
+    const xv = Object.keys(data.timeline).length ? Object.values(data.timeline) : [0];
+    timelineChart = new Chart(ctx2, { type:'bar', data:{ labels:xl, datasets:[{ label:'Documents', data:xv, backgroundColor:'rgba(108,92,231,0.5)', borderColor:'#6c5ce7', borderWidth:1, borderRadius:6 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ x:{ ticks:{color:'#666678'}, grid:{color:'rgba(255,255,255,0.05)'} }, y:{ beginAtZero:true, ticks:{color:'#666678', stepSize:1}, grid:{color:'rgba(255,255,255,0.05)'} } } } });
+}
+
+async function loadRecentDocs() {
+    try {
+        const resp = await fetch(`${API}/api/documents`);
+        const docs = await resp.json();
+        const tbody = document.getElementById('recentDocsTable');
+        const recent = docs.slice(-5).reverse();
+        if (!recent.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px;">No documents yet — upload one to get started!</td></tr>'; return; }
+        tbody.innerHTML = recent.map(doc => `<tr>
+            <td style="font-weight:500;">📄 ${esc(doc.filename)}</td>
+            <td>${doc.process_type === 'digitise' ? 'Full OCR' : 'Field Extraction'}</td>
+            <td>${statusBadge(doc.job_status)}</td>
+            <td style="color:var(--text-muted);font-size:13px;">${new Date(doc.uploaded_at).toLocaleDateString()}</td>
+        </tr>`).join('');
+    } catch(e){}
+}
+
+// ─── Documents List ──────────────────────────────────────────
+async function refreshDocuments() {
+    try {
+        const resp = await fetch(`${API}/api/documents`);
+        const docs = await resp.json();
+        const tbody = document.getElementById('allDocsTable');
+        const empty = document.getElementById('docsEmpty');
+        if (!docs.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+        empty.style.display='none';
+        tbody.innerHTML = docs.reverse().map(doc => `<tr>
+            <td style="font-weight:500;">📄 ${esc(doc.filename)}</td>
+            <td><span class="badge badge-pending">${doc.process_type === 'digitise' ? 'Full OCR' : 'Field Extract'}</span></td>
+            <td>${statusBadge(doc.job_status)}</td>
+            <td style="color:var(--text-muted);font-size:13px;">${new Date(doc.uploaded_at).toLocaleString()}</td>
+            <td>${doc.has_results
+                ? `<button class="btn btn-primary btn-sm" onclick="viewResults('${doc.id}')">📋 View Data</button>`
+                : doc.job_status === 'processing'
+                    ? '<span class="spinner"></span>'
+                    : '—'}</td>
+        </tr>`).join('');
+    } catch(e){}
+}
+
+// ══════════════════════════════════════════════════════════════
+// ─── HUMAN-READABLE RESULTS VIEWER ──────────────────────────
+// ══════════════════════════════════════════════════════════════
+async function viewResults(docId) {
+    try {
+        const resp = await fetch(`${API}/api/documents/${docId}`);
+        const doc = await resp.json();
+        const container = document.getElementById('resultModalContent');
+
+        if (!doc.results) {
+            container.innerHTML = doc.error
+                ? `<div style="color:var(--danger);padding:20px;">Something went wrong: ${esc(doc.error)}</div>`
+                : `<div style="color:var(--text-muted);padding:20px;">No results available yet. The document may still be processing.</div>`;
+            document.getElementById('resultModal').classList.add('show');
+            return;
+        }
+
+        // Build the human-readable view
+        let html = '';
+
+        // ── Summary Banner ──
+        html += `
+            <div class="result-summary-banner">
+                <h3>📋 ${esc(doc.filename)}</h3>
+                <p>Document processed successfully using ${doc.process_type === 'digitise' ? 'Full OCR (Digitise)' : 'Field Extraction'}</p>
+                <div class="summary-meta">
+                    <div class="meta-item">📅 ${new Date(doc.uploaded_at).toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'})}</div>
+                    <div class="meta-item">🌐 ${langName(doc.language)}</div>
+                    <div class="meta-item">📄 ${doc.usage?.pages_processed || '?'} page(s)</div>
+                    <div class="meta-item">✅ ${doc.job_status}</div>
+                </div>
+            </div>`;
+
+        // ── Tabs ──
+        html += `
+            <div class="result-tabs">
+                <button class="result-tab active" onclick="switchResultTab(this, 'readable')">📋 Readable View</button>
+                <button class="result-tab" onclick="switchResultTab(this, 'table')">📊 Table View</button>
+                <button class="result-tab" onclick="switchResultTab(this, 'raw')">🔧 Raw Data</button>
+            </div>`;
+
+        // Parse the results
+        const results = doc.results;
+        const flatData = flattenObj(results);
+
+        // ── Tab 1: Readable Cards ──
+        html += '<div class="result-tab-content active" data-tab="readable">';
+
+        // Check if this is an extract result with a clean "result" key
+        if (results.result && typeof results.result === 'object' && !Array.isArray(results.result)) {
+            html += renderFieldCards(results.result);
+        } else if (results.documents && Array.isArray(results.documents)) {
+            // Digitise result — show document text nicely
+            results.documents.forEach((docItem, idx) => {
+                const pageText = extractText(docItem);
+                if (pageText) {
+                    html += `<div style="margin-bottom:16px;">
+                        <h4 style="font-size:14px;color:var(--accent-light);margin-bottom:8px;">📄 Page ${idx + 1}</h4>
+                        <div class="document-text-view">${formatDocText(pageText)}</div>
+                    </div>`;
+                }
+            });
+        } else {
+            // Generic result — render as cards
+            html += renderFieldCards(flatData);
+        }
+        html += '</div>';
+
+        // ── Tab 2: Table View ──
+        html += '<div class="result-tab-content" data-tab="table">';
+        html += '<table class="kv-table">';
+        for (const [key, val] of Object.entries(flatData)) {
+            const displayKey = humanizeKey(key);
+            const displayVal = (val === null || val === undefined) ? '—' : String(val);
+            html += `<tr><td class="kv-key">${esc(displayKey)}</td><td class="kv-val">${esc(displayVal)}</td></tr>`;
+        }
+        html += '</table></div>';
+
+        // ── Tab 3: Raw JSON (for technical users) ──
+        html += `<div class="result-tab-content" data-tab="raw">
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Raw API response — for developers and BI tool integration</p>
+            <div class="document-text-view" style="font-family:monospace;font-size:12px;">${syntaxHighlight(JSON.stringify(results, null, 2))}</div>
+        </div>`;
+
+        container.innerHTML = html;
+        document.getElementById('exportJsonBtn').onclick = () => exportDoc(docId, 'json');
+        document.getElementById('exportCsvBtn').onclick = () => exportDoc(docId, 'csv');
+        document.getElementById('resultModal').classList.add('show');
+    } catch (err) { showToast('Failed to load results: ' + err.message, 'error'); }
+}
+
+function renderFieldCards(data) {
+    let html = '<div class="extracted-fields">';
+    for (const [key, val] of Object.entries(data)) {
+        const displayKey = humanizeKey(key);
+        const strVal = (val === null || val === undefined) ? '—' : String(val);
+        const isNum = typeof val === 'number' || (!isNaN(Number(strVal)) && strVal.trim() !== '' && strVal !== '—');
+        const isLong = strVal.length > 80;
+        const icon = fieldIcon(key);
+        html += `
+            <div class="field-card">
+                <div class="field-label">${icon} ${esc(displayKey)}</div>
+                <div class="field-value ${isNum ? 'number' : ''} ${isLong ? 'long-text' : ''}">${esc(strVal)}</div>
+            </div>`;
+    }
+    html += '</div>';
+    return html;
+}
+
+function switchResultTab(btn, tabName) {
+    btn.closest('.modal').querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    btn.closest('.modal').querySelectorAll('.result-tab-content').forEach(c => c.classList.remove('active'));
+    btn.closest('.modal').querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+}
+
+// ─── Helpers: Make data human-readable ──────────────────────
+function humanizeKey(key) {
+    // "invoice_number" → "Invoice Number", "result.total_amount" → "Total Amount"
+    const last = key.includes('.') ? key.split('.').pop() : key;
+    return last
+        .replace(/[\[\]0-9]/g, '')
+        .replace(/[_.-]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase())
+        .trim() || key;
+}
+
+function fieldIcon(key) {
+    const k = key.toLowerCase();
+    if (k.includes('date') || k.includes('time')) return '📅';
+    if (k.includes('amount') || k.includes('total') || k.includes('price') || k.includes('cost') || k.includes('tax')) return '💰';
+    if (k.includes('name') || k.includes('author') || k.includes('vendor') || k.includes('customer')) return '👤';
+    if (k.includes('number') || k.includes('id') || k.includes('invoice') || k.includes('receipt')) return '🔢';
+    if (k.includes('address') || k.includes('location') || k.includes('city')) return '📍';
+    if (k.includes('phone') || k.includes('mobile') || k.includes('tel')) return '📞';
+    if (k.includes('email') || k.includes('mail')) return '📧';
+    if (k.includes('item') || k.includes('product') || k.includes('description')) return '📦';
+    if (k.includes('status') || k.includes('state')) return '🔖';
+    if (k.includes('summary') || k.includes('title') || k.includes('subject')) return '📝';
+    return '📋';
+}
+
+function langName(code) {
+    const m = { 'en-IN':'English','hi-IN':'Hindi','bn-IN':'Bengali','ta-IN':'Tamil','te-IN':'Telugu','mr-IN':'Marathi','gu-IN':'Gujarati','kn-IN':'Kannada','ml-IN':'Malayalam','pa-IN':'Punjabi','or-IN':'Odia' };
+    return m[code] || code;
+}
+
+function flattenObj(obj, prefix='', out={}) {
+    if (obj === null || obj === undefined) return out;
+    if (typeof obj !== 'object') { out[prefix] = obj; return out; }
+    if (Array.isArray(obj)) {
+        if (obj.length === 0) { out[prefix] = '(empty)'; return out; }
+        // If array of simple values, join them
+        if (obj.every(i => typeof i !== 'object' || i === null)) {
+            out[prefix] = obj.join(', ');
+            return out;
+        }
+        obj.forEach((item, i) => flattenObj(item, prefix ? `${prefix} [${i+1}]` : `Item ${i+1}`, out));
+        return out;
+    }
+    for (const [k, v] of Object.entries(obj)) {
+        const newKey = prefix ? `${prefix}.${k}` : k;
+        if (v !== null && typeof v === 'object') flattenObj(v, newKey, out);
+        else out[newKey] = v;
+    }
+    return out;
+}
+
+function extractText(docItem) {
+    // Try to get text from various result formats
+    if (typeof docItem === 'string') return docItem;
+    if (docItem.text) return docItem.text;
+    if (docItem.content) return typeof docItem.content === 'string' ? docItem.content : JSON.stringify(docItem.content, null, 2);
+    if (docItem.markdown) return docItem.markdown;
+    if (docItem.html) return docItem.html;
+    return JSON.stringify(docItem, null, 2);
+}
+
+function formatDocText(text) {
+    // Basic formatting: detect headings, paragraphs
+    return esc(text)
+        .replace(/^(#{1,3})\s*(.+)$/gm, (m, h, t) => `<strong style="color:var(--text-primary);font-size:${20-h.length*2}px;">${t}</strong>`)
+        .replace(/\n{2,}/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+}
+
+function exportDoc(docId, format) { window.open(`${API}/api/export/${docId}?format=${format}`, '_blank'); }
+
+// ─── Workflows ───────────────────────────────────────────────
+async function loadWorkflows() {
+    try {
+        const resp = await fetch(`${API}/api/workflows`);
+        const workflows = await resp.json();
+        const container = document.getElementById('workflowsList');
+        const empty = document.getElementById('workflowsEmpty');
+        if (!workflows.length) { container.innerHTML=''; empty.style.display='block'; return; }
+        empty.style.display='none';
+        container.innerHTML = workflows.map(wf => `
+            <div class="workflow-card">
+                <div class="workflow-info">
+                    <h4>⚡ ${esc(wf.name)}</h4>
+                    <div class="workflow-rule">
+                        When <strong>${esc(wf.field)}</strong> ${wf.condition.replace('_',' ')} <strong>${esc(wf.value)}</strong> → ${wf.action === 'alert' ? '🔔 Alert' : wf.action === 'flag' ? '🚩 Flag' : '✅ Approve'}
+                    </div>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="deleteWorkflow('${wf.id}')">🗑 Delete</button>
+            </div>
+        `).join('');
+    } catch(e){}
+}
+function openWorkflowModal() { document.getElementById('workflowModal').classList.add('show'); }
+async function createWorkflow() {
+    const data = {
+        name: document.getElementById('wfName').value,
+        field: document.getElementById('wfField').value,
+        condition: document.getElementById('wfCondition').value,
+        value: document.getElementById('wfValue').value,
+        action: document.getElementById('wfAction').value,
+    };
+    if (!data.name || !data.field || !data.value) { showToast('Please fill in all fields', 'error'); return; }
+    await fetch(`${API}/api/workflows`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    closeModal('workflowModal');
+    showToast('Automation rule created!', 'success');
+    loadWorkflows();
+    ['wfName','wfField','wfValue'].forEach(id => document.getElementById(id).value='');
+}
+async function deleteWorkflow(id) {
+    await fetch(`${API}/api/workflows/${id}`, { method:'DELETE' });
+    showToast('Rule deleted', 'info');
+    loadWorkflows();
+}
+
+// ─── Alerts ──────────────────────────────────────────────────
+async function loadAlerts() {
+    try {
+        const resp = await fetch(`${API}/api/alerts`);
+        const alerts = await resp.json();
+        const container = document.getElementById('alertsList');
+        const empty = document.getElementById('alertsEmpty');
+        updateAlertBadge(alerts.filter(a => !a.read).length);
+        if (!alerts.length) { container.innerHTML=''; empty.style.display='block'; return; }
+        empty.style.display='none';
+        container.innerHTML = alerts.reverse().map(a => `
+            <div class="alert-item ${a.read?'':'unread'}">
+                <div class="alert-icon" style="background:var(--warning-bg);">🔔</div>
+                <div class="alert-content">
+                    <h4>${esc(a.rule_name)}</h4>
+                    <p>${esc(a.message)}</p>
+                </div>
+                <span class="alert-time">${new Date(a.timestamp).toLocaleString()}</span>
+                ${!a.read ? `<button class="btn btn-secondary btn-sm" onclick="markAlertRead('${a.id}')">✓ Read</button>` : ''}
+            </div>`).join('');
+    } catch(e){}
+}
+async function markAlertRead(id) { await fetch(`${API}/api/alerts/${id}/read`, {method:'POST'}); loadAlerts(); }
+async function clearAlerts() { await fetch(`${API}/api/alerts/clear`, {method:'POST'}); showToast('Alerts cleared','info'); loadAlerts(); }
+function updateAlertBadge(count) {
+    const b = document.getElementById('alertBadge');
+    if (count > 0) { b.style.display='inline'; b.textContent=count; } else { b.style.display='none'; }
+}
+
+// ─── Utils ───────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('show'); }));
+
+function statusBadge(s) {
+    const m = {
+        processing:'<span class="badge badge-processing"><span class="badge-dot"></span> Processing</span>',
+        completed:'<span class="badge badge-completed"><span class="badge-dot"></span> Completed</span>',
+        partially_completed:'<span class="badge badge-completed"><span class="badge-dot"></span> Partial</span>',
+        failed:'<span class="badge badge-failed"><span class="badge-dot"></span> Failed</span>',
+        rejected:'<span class="badge badge-failed"><span class="badge-dot"></span> Rejected</span>',
+        submission_failed:'<span class="badge badge-failed"><span class="badge-dot"></span> Failed</span>',
+        submitting:'<span class="badge badge-pending"><span class="badge-dot"></span> Submitting</span>',
+        timeout:'<span class="badge badge-pending"><span class="badge-dot"></span> Timeout</span>',
+    };
+    return m[s] || `<span class="badge badge-pending">${s}</span>`;
+}
+
+function esc(str) { const d=document.createElement('div'); d.textContent=str||''; return d.innerHTML; }
+
+function syntaxHighlight(json) {
+    json = json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+        let c='color:#ae81ff';
+        if(/^"/.test(m)) c=/:$/.test(m)?'color:#a6e22e':'color:#e6db74';
+        else if(/true|false/.test(m)) c='color:#66d9ef';
+        else if(/null/.test(m)) c='color:#fd971f';
+        return `<span style="${c}">${m}</span>`;
+    });
+}
+
+// ─── Auto-refresh ────────────────────────────────────────────
+setInterval(() => { if(document.getElementById('page-dashboard').classList.contains('active')) loadDashboard(); }, 15000);
+loadDashboard();
+</script>
+</body>
+</html>
